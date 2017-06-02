@@ -1,0 +1,3 @@
+This is a port of the demo01 to OpenGL 3.0, using the old-style GPGPU with full-screen quad and vertex/fragment shaders
+to do general purpose computing in shaders.
+It is meant for people that cannot use OpenGL 4.3, as it is the case for all Apple products right now.

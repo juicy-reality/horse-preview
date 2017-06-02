@@ -1,0 +1,71 @@
+// Note: A string header with GLSL version and #defines is added here.
+
+/**
+ * Copyright 2015 Michael Leahy / TyphonRT, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Compute shader to invert texture.
+#define WIDTH 640.0
+#define HEIGHT 480.0
+
+#define HALF_W (WIDTH/2.0)
+#define HALF_H (HEIGHT/2.0)
+
+layout(local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE) in;
+
+layout(binding=0, rgba8) uniform mediump readonly image2D inputImage;
+layout(binding=1, rgba8) uniform mediump writeonly image2D resultImage;
+layout(binding=1, rgba8) uniform mediump readonly image2D depthImage;
+
+uniform mat4 u_MVPMatrix;
+
+void passThrough()
+{
+    ivec2 vTexCoord = ivec2(gl_GlobalInvocationID.xy) ;
+
+    vec4 p = imageLoad(inputImage, vTexCoord );
+    imageStore(resultImage, vTexCoord, p);
+}
+
+void doStuff()
+{
+    ivec2 vTexCoord = ivec2(gl_GlobalInvocationID.xy) ;
+    vec2 oldPos = vec2(float(vTexCoord.x) / WIDTH, float(vTexCoord.y) / HEIGHT);
+
+    vec4 p = imageLoad(inputImage, vTexCoord);
+    //imageStore(resultImage, vTexCoord, p);
+    if(p.a < 0.1)
+    {
+        return ;
+    }
+
+    vec3 pos = vec3(float(vTexCoord.x) / HALF_W - 1.0, float(vTexCoord.y) / HALF_H - 1.0, - (p.r * 256.0 + p.g));
+    vec4 ax = u_MVPMatrix * vec4(pos, 1.0);
+
+    //ivec2 vTexCoordNew = ivec2(clamp((ax.x + 1.0) * HALF_W, 0.0, WIDTH), clamp((ax.y + 1.0) * HALF_H, 0.0, WIDTH));
+    ivec2 vTexCoordNew = ivec2((ax.x + 1.0) * HALF_W, (ax.y + 1.0) * HALF_H);
+    float z = imageLoad(depthImage, vTexCoordNew).z;
+    if (z > ax.z) {
+        imageStore(resultImage, vTexCoordNew, vec4(oldPos, ax.z, 1.0));
+        //imageStore(resultImage, vTexCoordNew, vec4(oldPos, 0.0, 1.0));
+         //imageStore(resultImage, vTexCoord, p);
+    }
+}
+
+void main()
+{
+    //passThrough();
+    doStuff();
+}

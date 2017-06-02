@@ -1,0 +1,41 @@
+// Note: A string header with GLSL version and #defines is added here.
+
+/**
+ * Copyright 2015 Michael Leahy / TyphonRT, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Compute shader to invert texture, but use a sampler showing that normal GLSL commands
+// can be mixed with compute shaders.
+
+precision mediump float;
+
+layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE) in;
+
+layout(binding=0) uniform sampler2D inputImage;
+layout(binding=1, rgba8) uniform mediump writeonly image2D resultImage;
+
+uniform vec2 imageDimension;
+
+void main()
+{
+   ivec2 position = ivec2(gl_GlobalInvocationID.xy);
+
+   // Must convert back to normalized U/V
+   vec2 screenNormalized = vec2(position) / imageDimension;
+
+   vec4 color = 1.0 - texture(inputImage, screenNormalized);
+
+   imageStore(resultImage, position, color);
+}
